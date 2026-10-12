@@ -4,64 +4,71 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pizza Hut Buffet countdown</title>
+<meta property="og:title" content="Pizza Hut Buffet countdown">
+<meta property="og:description" content="Friday, October 16 at 10:00 AM. Count down and sign the guest book.">
 <style>
-:root{
-  --bg:#fff4e0; --ink:#2a1208; --red:#c8102e; --crust:#e9a23b; --card:#fffdf7;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --bg:#2a0d0a; --ink:#ffeccc; --red:#ff5a4d; --crust:#e9a23b; --card:#3a1510; }
-}
-:root[data-theme="dark"]{ --bg:#2a0d0a; --ink:#ffeccc; --red:#ff5a4d; --crust:#e9a23b; --card:#3a1510; }
+:root{--bg:#fff4e0;--ink:#2a1208;--red:#c8102e;--crust:#e9a23b;--card:#fffdf7}
+@media (prefers-color-scheme: dark){:root{--bg:#2a0d0a;--ink:#ffeccc;--red:#ff5a4d;--card:#3a1510}}
 *{box-sizing:border-box}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{
-  margin:0; min-height:100vh; background:var(--bg); color:var(--ink);
-  font-family:"Trebuchet MS","Avenir Next",Verdana,sans-serif;
-  display:flex; align-items:center; justify-content:center; padding:24px;
-}
-main{width:100%; max-width:560px; text-align:center}
-h1{
-  font-family:Georgia,"Times New Roman",serif; font-weight:900;
-  font-size:clamp(2.2rem,9vw,3.6rem); line-height:1; margin:0 0 8px; color:var(--red);
-  letter-spacing:-.02em;
-}
-.when{margin:0 0 28px; font-size:1.05rem; opacity:.8}
-.clock{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
-.unit{
-  background:var(--card); border:3px solid var(--crust); border-radius:50%;
-  aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-}
-.unit b{font-family:Georgia,serif; font-size:clamp(1.6rem,8vw,2.8rem); font-variant-numeric:tabular-nums; line-height:1}
-.unit span{font-size:.8rem; margin-top:4px; opacity:.75}
-#msg{margin-top:28px; font-size:1.2rem; min-height:1.5em}
-.done h1{font-size:clamp(2.6rem,12vw,4.5rem)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Avenir Next",Verdana,sans-serif;display:flex;justify-content:center;padding:32px 20px 48px}
+main{width:100%;max-width:560px;text-align:center}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:900;font-size:clamp(2.2rem,9vw,3.6rem);line-height:1;margin:0 0 8px;color:var(--red);letter-spacing:-.02em}
+h2{font-family:Georgia,serif;font-size:1.6rem;margin:48px 0 16px;color:var(--red)}
+.when{margin:0 0 28px;font-size:1.05rem;opacity:.8}
+.clock{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.unit{background:var(--card);border:3px solid var(--crust);border-radius:50%;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.unit b{font-family:Georgia,serif;font-size:clamp(1.6rem,8vw,2.8rem);font-variant-numeric:tabular-nums;line-height:1}
+.unit span{font-size:.8rem;margin-top:4px;opacity:.75}
+#msg{margin-top:20px;font-size:1.2rem;min-height:1.5em}
+form{display:flex;flex-direction:column;gap:10px;text-align:left}
+label{font-size:.9rem}
+input,textarea{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:2px solid var(--crust);border-radius:10px;background:var(--card);color:var(--ink)}
+textarea{resize:vertical;min-height:80px}
+button{font:inherit;font-weight:700;padding:12px;border:0;border-radius:10px;background:var(--red);color:#fff;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#status{min-height:1.4em;font-size:.9rem;margin:0}
+ul{list-style:none;margin:24px 0 0;padding:0;display:flex;flex-direction:column;gap:10px;text-align:left}
+li{background:var(--card);border-left:5px solid var(--crust);border-radius:8px;padding:10px 14px;overflow-wrap:anywhere}
+li strong{display:block;margin-bottom:2px}
+li small{opacity:.6}
+.hp{position:absolute;left:-9999px}
 </style>
 </head>
 <body>
-<main id="app">
+<main>
   <h1>Pizza Hut Buffet</h1>
-  <p class="when">Friday, October 16 at 10:00 AM Eastern</p>
-  <div class="clock" id="clock" aria-live="off">
+  <p class="when" id="when">Friday, October 16 at 10:00 AM Eastern</p>
+  <div class="clock" id="clock">
     <div class="unit"><b id="d">0</b><span>days</span></div>
-    <div class="unit"><b id="h">0</b><span>hours</span></div>
-    <div class="unit"><b id="m">0</b><span>minutes</span></div>
-    <div class="unit"><b id="s">0</b><span>seconds</span></div>
+    <div class="unit"><b id="h">00</b><span>hours</span></div>
+    <div class="unit"><b id="m">00</b><span>minutes</span></div>
+    <div class="unit"><b id="s">00</b><span>seconds</span></div>
   </div>
   <p id="msg"></p>
+
+  <h2>Guest book</h2>
+  <form id="form" autocomplete="off">
+    <label for="name">Your name</label>
+    <input id="name" maxlength="30" required>
+    <label for="text">Message</label>
+    <textarea id="text" maxlength="200" required placeholder="Save me a breadstick."></textarea>
+    <input class="hp" id="hp" tabindex="-1" aria-hidden="true">
+    <button id="send" type="submit">Sign the guest book</button>
+    <p id="status" role="status"></p>
+  </form>
+  <ul id="list"></ul>
 </main>
+
 <script>
-// Fri Oct 16, 2026 10:00 AM EDT (UTC-4)
+// ---- Countdown: Fri Oct 16, 2026 10:00 AM EDT (UTC-4) ----
 var target = Date.parse("2026-10-16T10:00:00-04:00");
 function pad(n){return String(n).padStart(2,"0")}
 function tick(){
   var diff = target - Date.now();
-  var app = document.getElementById("app");
   if(diff <= 0){
-    app.classList.add("done");
     document.getElementById("clock").style.display = "none";
-    document.querySelector(".when").textContent = "It's buffet time!";
+    document.getElementById("when").textContent = "It's buffet time!";
     document.getElementById("msg").textContent = "Go get the pizza.";
     return;
   }
@@ -74,6 +81,75 @@ function tick(){
   setTimeout(tick, 1000 - (Date.now() % 1000));
 }
 tick();
+</script>
+
+<script type="module">
+// ---- Guest book (Firebase Firestore) ----
+// PASTE YOUR FIREBASE CONFIG HERE (Project settings > Your apps > Web app)
+const firebaseConfig = {
+  apiKey: "AIzaSyDOUjY16KcG_RP_6TojNkNrRtsXy7msZrE",
+  authDomain: "pizzahut-5ccce.firebaseapp.com",
+  projectId: "pizzahut-5ccce",
+  appId: "1:353619474521:web:9142c08b8282252a6f9948"
+};
+
+const status = document.getElementById("status");
+const list = document.getElementById("list");
+const form = document.getElementById("form");
+const send = document.getElementById("send");
+
+if (firebaseConfig.apiKey.startsWith("PASTE")) {
+  status.textContent = "Guest book isn't connected yet. Add your Firebase config to index.html.";
+  send.disabled = true;
+} else {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const app = initializeApp(firebaseConfig);
+  const db = fs.getFirestore(app);
+  const col = fs.collection(db, "guestbook");
+
+  fs.onSnapshot(
+    fs.query(col, fs.orderBy("createdAt", "desc"), fs.limit(50)),
+    (snap) => {
+      list.replaceChildren();
+      snap.forEach((doc) => {
+        const d = doc.data();
+        const li = document.createElement("li");
+        const n = document.createElement("strong");
+        n.textContent = d.name;
+        const p = document.createElement("span");
+        p.textContent = d.message;
+        li.append(n, p);
+        if (d.createdAt) {
+          const s = document.createElement("small");
+          s.textContent = " " + d.createdAt.toDate().toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+          li.append(document.createElement("br"), s);
+        }
+        list.append(li);
+      });
+      if (!snap.size) status.textContent = "No entries yet. Be the first.";
+    },
+    () => { status.textContent = "Couldn't load the guest book right now."; }
+  );
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (document.getElementById("hp").value) return; // spam trap
+    const name = document.getElementById("name").value.trim().slice(0, 30);
+    const message = document.getElementById("text").value.trim().slice(0, 200);
+    if (!name || !message) return;
+    send.disabled = true;
+    status.textContent = "Signing...";
+    try {
+      await fs.addDoc(col, { name, message, createdAt: fs.serverTimestamp() });
+      form.reset();
+      status.textContent = "Signed. Thanks!";
+    } catch (err) {
+      status.textContent = "Couldn't save that. Try again in a moment.";
+    }
+    setTimeout(() => { send.disabled = false; }, 8000);
+  });
+}
 </script>
 </body>
 </html>
