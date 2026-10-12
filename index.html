@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pizza Hut Buffet countdown</title>
+<style>
+:root{
+  --bg:#fff4e0; --ink:#2a1208; --red:#c8102e; --crust:#e9a23b; --card:#fffdf7;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#2a0d0a; --ink:#ffeccc; --red:#ff5a4d; --crust:#e9a23b; --card:#3a1510; }
+}
+:root[data-theme="dark"]{ --bg:#2a0d0a; --ink:#ffeccc; --red:#ff5a4d; --crust:#e9a23b; --card:#3a1510; }
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; min-height:100vh; background:var(--bg); color:var(--ink);
+  font-family:"Trebuchet MS","Avenir Next",Verdana,sans-serif;
+  display:flex; align-items:center; justify-content:center; padding:24px;
+}
+main{width:100%; max-width:560px; text-align:center}
+h1{
+  font-family:Georgia,"Times New Roman",serif; font-weight:900;
+  font-size:clamp(2.2rem,9vw,3.6rem); line-height:1; margin:0 0 8px; color:var(--red);
+  letter-spacing:-.02em;
+}
+.when{margin:0 0 28px; font-size:1.05rem; opacity:.8}
+.clock{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+.unit{
+  background:var(--card); border:3px solid var(--crust); border-radius:50%;
+  aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.unit b{font-family:Georgia,serif; font-size:clamp(1.6rem,8vw,2.8rem); font-variant-numeric:tabular-nums; line-height:1}
+.unit span{font-size:.8rem; margin-top:4px; opacity:.75}
+#msg{margin-top:28px; font-size:1.2rem; min-height:1.5em}
+.done h1{font-size:clamp(2.6rem,12vw,4.5rem)}
+</style>
+</head>
+<body>
+<main id="app">
+  <h1>Pizza Hut Buffet</h1>
+  <p class="when">Friday, October 16 at 10:00 AM Eastern</p>
+  <div class="clock" id="clock" aria-live="off">
+    <div class="unit"><b id="d">0</b><span>days</span></div>
+    <div class="unit"><b id="h">0</b><span>hours</span></div>
+    <div class="unit"><b id="m">0</b><span>minutes</span></div>
+    <div class="unit"><b id="s">0</b><span>seconds</span></div>
+  </div>
+  <p id="msg"></p>
+</main>
+<script>
+// Fri Oct 16, 2026 10:00 AM EDT (UTC-4)
+var target = Date.parse("2026-10-16T10:00:00-04:00");
+function pad(n){return String(n).padStart(2,"0")}
+function tick(){
+  var diff = target - Date.now();
+  var app = document.getElementById("app");
+  if(diff <= 0){
+    app.classList.add("done");
+    document.getElementById("clock").style.display = "none";
+    document.querySelector(".when").textContent = "It's buffet time!";
+    document.getElementById("msg").textContent = "Go get the pizza.";
+    return;
+  }
+  var t = Math.floor(diff/1000);
+  document.getElementById("d").textContent = Math.floor(t/86400);
+  document.getElementById("h").textContent = pad(Math.floor(t%86400/3600));
+  document.getElementById("m").textContent = pad(Math.floor(t%3600/60));
+  document.getElementById("s").textContent = pad(t%60);
+  document.getElementById("msg").textContent = diff < 3600000 ? "Almost pizza time." : "";
+  setTimeout(tick, 1000 - (Date.now() % 1000));
+}
+tick();
+</script>
+</body>
+</html>
