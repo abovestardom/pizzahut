@@ -456,11 +456,8 @@ if(firebaseConfig.apiKey.startsWith("PASTE")){
 }
 </script>
 
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
-</script>
 <script type="module">
-import * as THREE from 'three';
+import * as THREE from './three.module.js';
 
 /* ================= Slice Catch 3D (unlocks after signing) ================= */
 const wrap = document.getElementById('gameWrap');
@@ -845,6 +842,19 @@ try{
 }catch(err){
   overlay.innerHTML = '<h3>3D unavailable</h3><p>This browser could not start WebGL, so the arcade is closed today.</p>';
 }
+</script>
+<script>
+/* Game boot watchdog: if the 3D module never started (blocked script, ancient browser),
+   say so instead of leaving a dead arcade. */
+setTimeout(function(){
+  if(!document.querySelector('#game3d canvas')){
+    var ov = document.getElementById('gameOverlay');
+    if(ov){
+      ov.style.display = 'flex';
+      ov.innerHTML = '<h3>Game could not load</h3><p>Slice Catch 3D needs an internet connection and a modern browser. Try updating your browser or disabling content blockers, then reload.</p>';
+    }
+  }
+}, 9000);
 </script>
 
 </body>
