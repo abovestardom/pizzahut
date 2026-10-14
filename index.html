@@ -29,8 +29,10 @@ body{
 main{width:100%;max-width:620px;text-align:center;position:relative;z-index:1;padding:0 20px;margin:0 auto}
 
 /* ---------- hero ---------- */
-.hero{width:100%;background:#14100c;border-bottom:5px solid var(--ink)}
-.hero img{display:block;width:100%;max-width:1000px;margin:0 auto;height:auto}
+.hero{width:100%;background:linear-gradient(to bottom,#14100c 70%,var(--cream))}
+.hero img{display:block;width:100%;max-width:1100px;margin:0 auto;height:auto;
+  -webkit-mask-image:linear-gradient(to bottom,#000 88%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 88%,transparent 100%)}
 
 /* ---------- checker divider ---------- */
 .checker{height:24px;margin:30px -20px;
@@ -112,6 +114,13 @@ footer{margin-top:48px;font-weight:700;letter-spacing:.14em;font-size:.85rem;opa
 .sl{position:absolute;top:-70px;left:var(--x);width:46px;opacity:.16;animation:drift var(--d) linear infinite;animation-delay:var(--dl)}
 @keyframes drift{to{transform:translateY(115vh) rotate(330deg)}}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+/* ---------- small screens: 2x2 countdown grid ---------- */
+@media (max-width:460px){
+  .clock{display:grid;grid-template-columns:repeat(2,auto);justify-content:center;gap:14px 28px}
+  .sep{display:none}
+  .ticket{padding:22px 12px 18px}
+}
 
 @media (prefers-reduced-motion: reduce){
   .sl{animation:none;display:none}
