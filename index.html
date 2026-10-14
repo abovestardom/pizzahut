@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pizza Hut Buffet Party – Friday, October 16 at 11:00 AM | Northfield, NJ</title>
-<meta name="description" content="Join Eric Spears for a Pizza Hut Buffet Party on Friday, October 16 at 11:00 AM ET in Northfield, NJ. Sign the guest book and play Slice Catch 3D!" />
+<title>Pizza Hut Buffet | pizzahutbuffet.com</title>
+<meta name="description" content="Pizza Hut Buffet is back! Unlimited pizza, friends, and good times — join the buffet party, sign the guest book, and play Slice Catch 3D." />
 <meta property="og:title" content="Pizza Hut Buffet" />
 <meta property="og:description" content="Countdown to Friday, October 16 at 11:00 AM ET. Sign the guest book!" />
 <meta property="og:image" content="https://www.pizzahutbuffet.com/og-image.gif" />
@@ -33,6 +33,38 @@
   "organizer": { "@type": "Person", "name": "Eric Spears" },
   "image": "https://www.pizzahutbuffet.com/og-image.gif",
   "url": "https://www.pizzahutbuffet.com/"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does Pizza Hut still have a buffet?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes! Select Pizza Hut locations have brought back the all-you-can-eat buffet — unlimited pizza, pasta, salad, and breadsticks, dine-in only. Availability varies by location, so call ahead before you go."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is pizzahutbuffet.com?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It's the home of the Pizza Hut Buffet Party: the live countdown, the guest book, and Slice Catch 3D — the arcade game that unlocks after you sign. Come hungry."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When is the next Pizza Hut buffet party?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Friday, October 16 at 11:00 AM ET in Northfield, NJ, hosted by Eric Spears. Sign the guest book to join the fun."
+      }
+    }
+  ]
 }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -139,6 +171,18 @@ li small{opacity:.6}
 #gameOverlay .lock{font-size:3rem}
 #gameOverlay button{font-size:1.05rem}
 #gameHint{font-size:.85rem;opacity:.65;margin-top:10px}
+
+/* ---------- buffet lore + faq ---------- */
+.lore{background:var(--card);border:4px solid var(--ink);border-radius:18px;box-shadow:8px 8px 0 var(--ink);padding:22px;text-align:left;margin-top:36px}
+.lore p{line-height:1.65;margin:0 0 12px}
+.lore p:last-child{margin-bottom:0}
+details.faq{background:#fff;border:3px solid var(--ink);border-radius:12px;box-shadow:4px 4px 0 var(--ink);margin:12px 0;text-align:left;overflow:hidden}
+details.faq summary{cursor:pointer;font-weight:800;padding:14px 16px;list-style:none}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::before{content:"+ ";color:var(--red)}
+details.faq[open] summary::before{content:"\2013  "}
+details.faq p{margin:0;padding:0 16px 16px;line-height:1.6}
+
 footer{margin-top:48px;font-weight:700;letter-spacing:.14em;font-size:.85rem;opacity:.7}
 
 /* ---------- pizza overload ---------- */
@@ -201,7 +245,7 @@ body.overload #flash{animation:flashbang .6s ease-out}
 <div id="flash"></div>
 
 <header class="hero"><img src="ph-hero.jpg" alt="You're invited to the Pizza Hut Buffet Party — pizza, friends, good times. Friday, October 16 at 11:00 AM in Northfield, NJ."></header>
-<h1 class="visually-hidden">Pizza Hut Buffet Party – Friday, October 16 at 11:00 AM in Northfield, NJ, hosted by Eric Spears</h1>
+<h1 class="visually-hidden">Pizza Hut Buffet</h1>
 <main>
   <div class="checker"></div>
 
@@ -246,6 +290,28 @@ body.overload #flash{animation:flashbang .6s ease-out}
     <div id="gameOverlay"></div>
   </div>
   <p id="gameHint">Mouse, touch, or arrow keys. Streaks build your combo. No mods — the pizza police are watching. 🚨</p>
+
+  <section class="lore">
+    <h2 class="sec" style="text-align:center">The <span class="accent">Pizza Hut</span> Buffet is back</h2>
+    <p>Remember the Pizza Hut buffet? The red cups, the salad bar, slice after slice of hot, fresh pizza sliding out of the kitchen — the all-you-can-eat legend of the '80s and '90s never really left our hearts. Now the Pizza Hut buffet is making a comeback at locations across the country, and we're throwing a party to celebrate it properly.</p>
+    <p><strong>pizzahutbuffet.com</strong> is home base for buffet believers: the countdown to the big day, the guest book, and the Slice Catch 3D arcade. Unlimited pizza, good friends, good times — that's the whole religion.</p>
+  </section>
+
+  <section>
+    <h2 class="sec">Buffet <span class="accent">questions</span></h2>
+    <details class="faq">
+      <summary>Does Pizza Hut still have a buffet?</summary>
+      <p>Yes! Select Pizza Hut locations have brought back the all-you-can-eat buffet — unlimited pizza, pasta, salad, and breadsticks, dine-in only. Availability varies by location, so call ahead before you go.</p>
+    </details>
+    <details class="faq">
+      <summary>What is pizzahutbuffet.com?</summary>
+      <p>It's the home of the Pizza Hut Buffet Party: the live countdown, the guest book, and Slice Catch 3D — the arcade game that unlocks after you sign. Come hungry.</p>
+    </details>
+    <details class="faq">
+      <summary>When is the next Pizza Hut buffet party?</summary>
+      <p>Friday, October 16 at 11:00 AM ET in Northfield, NJ, hosted by Eric Spears. Sign the guest book above to join the fun.</p>
+    </details>
+  </section>
 
   <footer>GOOD PIZZA • COLD DRINKS • GREAT COMPANY</footer>
 </main>
