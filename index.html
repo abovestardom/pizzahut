@@ -99,7 +99,13 @@ li small{opacity:.6}
 .marquee{background:var(--ink);color:var(--yellow);font-family:Bungee,Georgia,serif;letter-spacing:.12em;
   padding:10px;border-radius:14px 14px 0 0;border:4px solid var(--ink);border-bottom:0;font-size:1.05rem}
 #gameWrap{position:relative}
-#game{width:100%;max-width:580px;aspect-ratio:600/360;background:#2b0f0a;border:4px solid var(--ink);border-top:0;border-radius:0 0 14px 14px;display:block;touch-action:none;cursor:crosshair;box-shadow:8px 8px 0 var(--ink)}
+#game3d{width:100%;background:#170c08;border:4px solid var(--ink);border-top:0;border-radius:0 0 14px 14px;overflow:hidden;box-shadow:8px 8px 0 var(--ink);touch-action:none;cursor:crosshair}
+#game3d canvas{display:block;width:100%!important;height:auto!important}
+#hud{position:absolute;top:12px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:2}
+#hud[hidden]{display:none}
+#hudScore{color:#ffeccc;font-size:1.35rem;font-weight:800;text-shadow:2px 2px 0 #000}
+#hudLives{color:#ff6b5e;letter-spacing:.25em;font-size:1.1rem;text-shadow:2px 2px 0 #000}
+#hudCombo{position:absolute;left:50%;top:2px;transform:translateX(-50%);color:var(--yellow);font-family:Bungee,Georgia,serif;font-size:1.05rem;text-shadow:2px 2px 0 #000;white-space:nowrap}
 #gameOverlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(20,8,4,.78);border-radius:0 0 10px 10px;color:#ffeccc;padding:20px}
 #gameOverlay h3{margin:0;font-family:Bungee,Georgia,serif;font-size:1.7rem;color:var(--yellow)}
 #gameOverlay p{margin:0;max-width:400px;font-size:.98rem}
@@ -181,7 +187,8 @@ footer{margin-top:48px;font-weight:700;letter-spacing:.14em;font-size:.85rem;opa
   <p class="sec-sub" id="arcadeSub">Members only — sign the guest book to play.</p>
   <div class="marquee">★ SLICE CATCH ★</div>
   <div id="gameWrap">
-    <canvas id="game" width="600" height="360"></canvas>
+    <div id="game3d"></div>
+    <div id="hud" hidden><b id="hudScore">0</b><span id="hudCombo"></span><span id="hudLives">●●●</span></div>
     <div id="gameOverlay"></div>
   </div>
   <p id="gameHint">Mouse, touch, or arrow keys. Streaks build your combo.</p>
@@ -377,165 +384,310 @@ if(firebaseConfig.apiKey.startsWith("PASTE")){
 }
 </script>
 
-<script>
-"use strict";
-/* ================= Slice Catch game (unlocks after signing) ================= */
-(function(){
-const gc = document.getElementById("game"), gx = gc.getContext("2d");
-const overlay = document.getElementById("gameOverlay");
-const GW = 600, GH = 360, TRAY_Y = GH-46, TRAY_W = 104;
-let state = "locked", px = GW/2, targetX = GW/2, keys = {};
-let items = [], parts = [], score = 0, combo = 0, lives = 3, elapsed = 0, spawnIn = 0, last = 0, shake = 0;
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= Slice Catch 3D (unlocks after signing) ================= */
+const wrap = document.getElementById('gameWrap');
+const overlay = document.getElementById('gameOverlay');
+const hud = document.getElementById('hud');
+const hudScore = document.getElementById('hudScore');
+const hudLives = document.getElementById('hudLives');
+const hudCombo = document.getElementById('hudCombo');
+
 window.gameUnlocked = false;
-try{ window.gameUnlocked = localStorage.getItem("phb_signed")==="1"; }catch(e){}
-const RANKS = [[150,"Casual Snacker"],[350,"Slice Enthusiast"],[600,"Buffet Legend"],[Infinity,"Pizza Hut Immortal"]];
+try{ window.gameUnlocked = localStorage.getItem('phb_signed') === '1'; }catch(e){}
+
+const RANKS = [[150,'Casual Snacker'],[350,'Slice Enthusiast'],[600,'Buffet Legend'],[Infinity,'Pizza Hut Immortal']];
 const rankFor = s => { for(const [lim,n] of RANKS) if(s < lim) return n; };
+
+let renderer = null, scene = null, camera = null, boxG = null;
+let state = 'locked';
+let slices = [], parts = [];
+let score = 0, combo = 0, lives = 3, elapsed = 0, spawnIn = 0, targetX = 0;
+let keys = {};
+let last = 0;
+
+const MAT = {
+  cheese: new THREE.MeshStandardMaterial({color:0xffd23f, roughness:.65}),
+  cheeseGold: new THREE.MeshStandardMaterial({color:0xffe27a, roughness:.4, emissive:0xaa8800, emissiveIntensity:.55}),
+  burnt: new THREE.MeshStandardMaterial({color:0x4a4440, roughness:.9}),
+  crust: new THREE.MeshStandardMaterial({color:0xd9a05b, roughness:.7}),
+  crustDark: new THREE.MeshStandardMaterial({color:0x2e2a26, roughness:.9}),
+  pep: new THREE.MeshStandardMaterial({color:0xc0392b, roughness:.6}),
+  card: new THREE.MeshStandardMaterial({color:0xc98f4e, roughness:.85}),
+  wood: new THREE.MeshStandardMaterial({color:0x4a2e18, roughness:.9}),
+  cup: new THREE.MeshStandardMaterial({color:0xc8102e, roughness:.5}),
+};
+
+function makeSliceMesh(kind){
+  const g = new THREE.Group();
+  const cheeseMat = kind === 'gold' ? MAT.cheeseGold : kind === 'burnt' ? MAT.burnt : MAT.cheese;
+  const crustMat = kind === 'burnt' ? MAT.crustDark : MAT.crust;
+  const tri = new THREE.Shape();
+  tri.moveTo(-0.6, 0); tri.lineTo(0.6, 0); tri.lineTo(0, 1.3); tri.closePath();
+  const geo = new THREE.ExtrudeGeometry(tri, {depth:.16, bevelEnabled:false});
+  geo.rotateX(-Math.PI/2);
+  geo.translate(0, 0, .65);
+  const m = new THREE.Mesh(geo, cheeseMat);
+  m.castShadow = true;
+  g.add(m);
+  const crust = new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,1.3,10), crustMat);
+  crust.rotation.z = Math.PI/2;
+  crust.position.set(0, .1, .65);
+  crust.castShadow = true;
+  g.add(crust);
+  if(kind !== 'burnt'){
+    const pepGeo = new THREE.CylinderGeometry(.11,.11,.05,12);
+    [[-.28,.3],[.28,.3],[0,-.25]].forEach(([x,z])=>{
+      const p = new THREE.Mesh(pepGeo, MAT.pep);
+      p.position.set(x, .19, z);
+      g.add(p);
+    });
+  }
+  return g;
+}
+
+function makePie(scale){
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,.14,28), MAT.cheese);
+  base.position.y = .07; base.receiveShadow = true;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.02,.13,12,28), MAT.crust);
+  rim.rotation.x = Math.PI/2; rim.position.y = .1;
+  g.add(base, rim);
+  const pepGeo = new THREE.CylinderGeometry(.12,.12,.05,12);
+  for(let i=0;i<7;i++){
+    const a = Math.random()*Math.PI*2, r = Math.random()*.7;
+    const p = new THREE.Mesh(pepGeo, MAT.pep);
+    p.position.set(Math.cos(a)*r, .16, Math.sin(a)*r);
+    g.add(p);
+  }
+  g.scale.setScalar(scale);
+  return g;
+}
+
+function init(){
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.getElementById('game3d').appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x170c08);
+  scene.fog = new THREE.Fog(0x170c08, 14, 34);
+
+  camera = new THREE.PerspectiveCamera(50, 1.6, .1, 100);
+  camera.position.set(0, 6.2, 10);
+  camera.lookAt(0, 1.2, -.5);
+
+  scene.add(new THREE.HemisphereLight(0xfff2d9, 0x3a1c10, .95));
+  const sun = new THREE.DirectionalLight(0xffe6b3, 1.6);
+  sun.position.set(5, 11, 6);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -9; sun.shadow.camera.right = 9;
+  sun.shadow.camera.top = 9; sun.shadow.camera.bottom = -9;
+  sun.shadow.bias = -0.0005;
+  scene.add(sun);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(70, 44), MAT.wood);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const pie1 = makePie(1.25); pie1.position.set(-6.4, 0, -4.6); scene.add(pie1);
+  const pie2 = makePie(1.0); pie2.position.set(6.6, 0, -5.2); pie2.rotation.y = 1; scene.add(pie2);
+  const cupGeo = new THREE.CylinderGeometry(.34,.26,.95,16);
+  [[-7.8,-2.6],[7.9,-3.1]].forEach(([x,z])=>{
+    const c = new THREE.Mesh(cupGeo, MAT.cup);
+    c.position.set(x, .48, z); c.castShadow = true; scene.add(c);
+  });
+
+  boxG = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.BoxGeometry(2.4,.18,1.7), MAT.card);
+  base.position.y = .09; base.castShadow = true; boxG.add(base);
+  const wallFB = new THREE.BoxGeometry(2.4,.55,.12);
+  const wallLR = new THREE.BoxGeometry(.12,.55,1.7);
+  [[0,.36,-.79,wallFB],[0,.36,.79,wallFB],[-1.14,.36,0,wallLR],[1.14,.36,0,wallLR]].forEach(([x,y,z,geo])=>{
+    const wm = new THREE.Mesh(geo, MAT.card);
+    wm.position.set(x,y,z); wm.castShadow = true; boxG.add(wm);
+  });
+  scene.add(boxG);
+
+  sizeAll();
+  addEventListener('resize', sizeAll);
+
+  renderer.domElement.addEventListener('pointermove', e=>{
+    if(state === 'play') targetX = pointerNDC(e) * 7;
+  });
+  renderer.domElement.addEventListener('pointerdown', e=>{
+    if(state === 'idle'){ start(); return; }
+    if(state === 'play') targetX = pointerNDC(e) * 7;
+  });
+  addEventListener('keydown', e=>{
+    if(e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if(e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+    if((e.key === ' ' || e.key === 'Enter') && state === 'idle') start();
+  });
+  addEventListener('keyup', e=>{
+    if(e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if(e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+  });
+
+  requestAnimationFrame(loop);
+}
+
+function sizeAll(){
+  const w = wrap.clientWidth;
+  const h = Math.round(w * 10 / 16);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+function pointerNDC(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  const cxp = (e.touches ? e.touches[0].clientX : e.clientX);
+  return ((cxp - r.left) / r.width) * 2 - 1;
+}
+
+function spawnSlice(){
+  const r = Math.random();
+  const kind = r < .06 ? 'gold' : r < .24 ? 'burnt' : 'slice';
+  const mesh = makeSliceMesh(kind);
+  mesh.position.set((Math.random()*2-1)*4.2, 9, (Math.random()*2-1)*.9);
+  mesh.rotation.y = Math.random()*Math.PI*2;
+  scene.add(mesh);
+  slices.push({mesh, vy: 3.2 + Math.random()*1.6 + elapsed*.05, vr:(Math.random()-.5)*1.4, kind});
+}
+
+function removeSlice(i){ scene.remove(slices[i].mesh); slices.splice(i,1); }
+
+function burst(p, colors){
+  for(let i=0;i<14;i++){
+    const m = new THREE.Mesh(new THREE.TetrahedronGeometry(.1),
+      new THREE.MeshBasicMaterial({color: colors[i % colors.length]}));
+    m.position.copy(p);
+    const a = Math.random()*Math.PI*2;
+    parts.push({m, vx:Math.cos(a)*(1+Math.random()*3), vy:2+Math.random()*4,
+      vz:Math.sin(a)*(1+Math.random()*3), life:1});
+    scene.add(m);
+  }
+}
+
+function updateHUD(){
+  hudScore.textContent = score;
+  hudLives.textContent = '●'.repeat(lives) + '○'.repeat(Math.max(0, 3-lives));
+  hudCombo.textContent = combo >= 3 ? 'COMBO x' + combo : '';
+}
+
+function start(){
+  if(!window.gameUnlocked || !renderer) return;
+  state = 'play';
+  score = 0; combo = 0; lives = 3; elapsed = 0; spawnIn = .5; targetX = 0;
+  slices.forEach(s => scene.remove(s.mesh)); slices = [];
+  parts.forEach(p => scene.remove(p.m)); parts = [];
+  boxG.position.x = 0;
+  camera.position.x = 0; camera.lookAt(0, 1.2, -.5);
+  overlay.style.display = 'none';
+  hud.hidden = false;
+  updateHUD();
+  last = performance.now();
+}
+
+function gameOver(){
+  state = 'over';
+  hud.hidden = true;
+  overlay.style.display = 'flex';
+  overlay.innerHTML = '<h3>Game over!</h3><p>You scored <b>'+score+'</b></p><p class="rank">'+rankFor(score)+'</p><button id="againBtn" type="button">Play again</button>';
+  document.getElementById('againBtn').addEventListener('click', start);
+}
 
 window.renderGameOverlay = function(){
   if(!window.gameUnlocked){
-    state = "locked";
-    overlay.style.display = "flex";
-    overlay.innerHTML = '<div class="lock">🔒</div><h3>Members only</h3><p>Slice Catch unlocks after you sign the guest book. Go on — claim your slice of history.</p><button id="gotoBook" type="button">Take me there</button>';
-    document.getElementById("gotoBook").addEventListener("click", ()=>{
-      document.getElementById("form").scrollIntoView({behavior:"smooth",block:"center"});
+    state = 'locked';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = '<div class="lock">🔒</div><h3>Members only</h3><p>Slice Catch 3D unlocks after you sign the guest book. Go on — claim your slice of history.</p><button id="gotoBook" type="button">Take me there</button>';
+    document.getElementById('gotoBook').addEventListener('click', ()=>{
+      document.getElementById('form').scrollIntoView({behavior:'smooth', block:'center'});
     });
-  }else if(state === "locked" || state === "idle"){
-    state = "idle";
-    overlay.style.display = "flex";
-    overlay.innerHTML = '<h3>Slice Catch</h3><p>Catch the falling slices in your pizza box. Golden crust = 50 pts! Dodge the burnt ones — three strikes and you\'re out.</p><button id="playBtn" type="button">Play</button>';
-    document.getElementById("playBtn").addEventListener("click", start);
+  }else if(state === 'locked' || state === 'idle'){
+    state = 'idle';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = '<h3>Slice Catch 3D</h3><p>Slices are falling from the sky! Slide the pizza box to catch them. Golden crust = 50 pts. Dodge the burnt ones — three strikes and you\'re out.</p><button id="playBtn" type="button">Play</button>';
+    document.getElementById('playBtn').addEventListener('click', start);
   }
 };
-function drawSlice(x,y,s,rot,kind){
-  gx.save(); gx.translate(x,y); gx.rotate(rot);
-  const cheese = kind==="burnt" ? "#55504a" : kind==="gold" ? "#ffe27a" : "#ffd23f";
-  if(kind==="gold"){ gx.shadowColor = "#fff2a8"; gx.shadowBlur = 16; }
-  gx.fillStyle = cheese;
-  gx.beginPath(); gx.moveTo(-s,-s*.72); gx.lineTo(s,-s*.72); gx.lineTo(0,s*.95); gx.closePath(); gx.fill();
-  gx.shadowBlur = 0;
-  gx.fillStyle = kind==="burnt" ? "#2e2a26" : "#d9a05b";
-  gx.fillRect(-s,-s*.72-7,2*s,8);
-  if(kind!=="burnt"){
-    gx.fillStyle = "#c0392b";
-    [[-s*.38,-s*.3],[s*.36,-s*.28],[s*.02,s*.28]].forEach(pt=>{gx.beginPath();gx.arc(pt[0],pt[1],s*.17,0,6.29);gx.fill();});
-  }else{
-    gx.fillStyle = "#1d1a17";
-    [[-s*.3,-s*.2],[s*.3,s*.1]].forEach(pt=>{gx.beginPath();gx.arc(pt[0],pt[1],s*.14,0,6.29);gx.fill();});
-  }
-  gx.restore();
-}
-function drawTray(){
-  const w = TRAY_W, h = 30, x = px-w/2, y = TRAY_Y;
-  gx.save();
-  if(shake>0){ gx.translate((Math.random()-.5)*shake, 0); }
-  gx.fillStyle = "#8a5a2b";
-  gx.beginPath();
-  if(gx.roundRect) gx.roundRect(x, y, w, h, 8); else gx.rect(x, y, w, h);
-  gx.fill();
-  gx.fillStyle = "#ffc72c"; gx.fillRect(x+6, y+6, w-12, h-12);
-  gx.fillStyle = "rgba(255,255,255,.3)"; gx.fillRect(x+6, y+6, w-12, 5);
-  gx.restore();
-}
-function drawHUD(){
-  gx.fillStyle = "#ffeccc"; gx.font = "700 20px 'Trebuchet MS',sans-serif"; gx.textAlign = "left";
-  gx.fillText(score, 14, 30);
-  gx.textAlign = "right";
-  for(let i=0;i<3;i++){
-    gx.fillStyle = i<lives ? "#c0392b" : "rgba(255,255,255,.15)";
-    gx.beginPath(); gx.arc(GW-24-i*30, 22, 10, 0, 6.29); gx.fill();
-  }
-  if(combo>=3){
-    gx.textAlign = "center"; gx.fillStyle = "#ffc72c";
-    gx.font = "900 22px Georgia,serif";
-    gx.fillText("COMBO x"+combo, GW/2, 32);
-  }
-}
-function burst(x,y,n,colors){
-  for(let i=0;i<n;i++){
-    const a = Math.random()*6.28, sp = 1+Math.random()*4;
-    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,life:1,color:colors[(Math.random()*colors.length)|0],r:2+Math.random()*3});
-  }
-}
-function spawnItem(){
-  const r = Math.random();
-  const kind = r < .06 ? "gold" : r < .22 ? "burnt" : "slice";
-  items.push({x: 30+Math.random()*(GW-60), y:-30, vy: 1.6+Math.random()*1.4+elapsed*0.012,
-    rot:(Math.random()-.5)*.8, vr:(Math.random()-.5)*.06, s: 20+Math.random()*8, kind});
-}
-function start(){
-  if(!window.gameUnlocked) return;
-  state = "play"; score = 0; combo = 0; lives = 3; elapsed = 0; items = []; parts = []; spawnIn = 0; shake = 0;
-  overlay.style.display = "none"; last = performance.now();
+
+function loop(t){
   requestAnimationFrame(loop);
-}
-function gameOver(){
-  state = "over";
-  overlay.style.display = "flex";
-  overlay.innerHTML = '<h3>Game over!</h3><p>You scored <b>'+score+'</b></p><p class="rank">'+rankFor(score)+'</p><button id="againBtn" type="button">Play again</button>';
-  document.getElementById("againBtn").addEventListener("click", start);
-}
-function loop(now){
-  if(state !== "play") return;
-  const dt = Math.min(50, now-last)/16.7; last = now; elapsed += dt/60;
-  if(keys.left) targetX -= 9*dt;
-  if(keys.right) targetX += 9*dt;
-  targetX = Math.max(TRAY_W/2, Math.min(GW-TRAY_W/2, targetX));
-  px += (targetX-px)*Math.min(1,.35*dt);
-  spawnIn -= dt/60;
-  if(spawnIn <= 0){ spawnItem(); spawnIn = Math.max(.32, .95 - elapsed*.012); }
-  gx.clearRect(0,0,GW,GH);
-  if(shake>0) shake -= dt;
-  for(let i=items.length-1;i>=0;i--){
-    const it = items[i];
-    it.y += it.vy*dt; it.rot += it.vr*dt;
-    const caught = it.y > TRAY_Y-14 && it.y < TRAY_Y+26 && Math.abs(it.x-px) < TRAY_W/2;
-    if(caught){
-      if(it.kind === "burnt"){
-        lives--; combo = 0; shake = 10;
-        burst(it.x, it.y, 18, ["#55504a","#2e2a26"]);
-        if(lives<=0){ items.splice(i,1); gameOver(); return; }
-      }else{
-        const pts = it.kind==="gold" ? 50 : 10;
-        combo++; score += pts + (combo>=3 ? combo*2 : 0);
-        burst(it.x, it.y, it.kind==="gold"?26:12, it.kind==="gold"?["#ffe27a","#fff2a8","#ffd23f"]:["#ffd23f","#d9a05b","#c0392b"]);
+  const dt = Math.min(.05, (t - last) / 1000 || .016); last = t;
+  const time = t / 1000;
+
+  if(keys.left) targetX -= 8*dt;
+  if(keys.right) targetX += 8*dt;
+  targetX = Math.max(-4.2, Math.min(4.2, targetX));
+  boxG.position.x += (targetX - boxG.position.x) * Math.min(1, 12*dt);
+
+  if(state === 'play'){
+    elapsed += dt;
+    spawnIn -= dt;
+    if(spawnIn <= 0){ spawnSlice(); spawnIn = Math.max(.35, 1.0 - elapsed*.015); }
+    for(let i = slices.length-1; i >= 0; i--){
+      const s = slices[i];
+      const p = s.mesh.position;
+      p.y -= s.vy * dt;
+      s.mesh.rotation.z += s.vr * dt;
+      if(p.y <= .95 && p.y > .25 && Math.abs(p.x - boxG.position.x) < 1.3 && Math.abs(p.z) < 1.15){
+        if(s.kind === 'burnt'){
+          lives--; combo = 0; updateHUD();
+          burst(p, [0x55504a, 0x2e2a26]);
+          if(lives <= 0){ removeSlice(i); gameOver(); return; }
+        }else{
+          const pts = s.kind === 'gold' ? 50 : 10;
+          combo++;
+          score += pts + (combo >= 3 ? combo*2 : 0);
+          updateHUD();
+          burst(p, s.kind === 'gold' ? [0xffe27a,0xfff2a8,0xffd23f] : [0xffd23f,0xd9a05b,0xc0392b]);
+        }
+        removeSlice(i);
+        continue;
       }
-      items.splice(i,1); continue;
+      if(p.y < .02){
+        if(s.kind !== 'burnt'){ combo = 0; updateHUD(); }
+        removeSlice(i);
+      }
     }
-    if(it.y > GH+30){ if(it.kind!=="burnt") combo = 0; items.splice(i,1); continue; }
-    drawSlice(it.x, it.y, it.s, it.rot, it.kind);
+  }else{
+    camera.position.x = Math.sin(time * .35) * 1.4;
+    camera.lookAt(0, 1.2, -.5);
   }
-  for(let i=parts.length-1;i>=0;i--){
-    const p = parts[i];
-    p.x += p.vx*dt; p.y += p.vy*dt; p.vy += .15*dt; p.life -= .02*dt;
-    if(p.life<=0){ parts.splice(i,1); continue; }
-    gx.globalAlpha = p.life; gx.fillStyle = p.color;
-    gx.beginPath(); gx.arc(p.x,p.y,p.r,0,6.29); gx.fill(); gx.globalAlpha = 1;
+
+  for(let i = parts.length-1; i >= 0; i--){
+    const pt = parts[i];
+    pt.vy -= 9*dt;
+    pt.m.position.x += pt.vx*dt;
+    pt.m.position.y += pt.vy*dt;
+    pt.m.position.z += pt.vz*dt;
+    pt.life -= dt*1.4;
+    pt.m.scale.setScalar(Math.max(.01, pt.life));
+    if(pt.life <= 0){ scene.remove(pt.m); parts.splice(i,1); }
   }
-  drawTray(); drawHUD();
-  requestAnimationFrame(loop);
+
+  renderer.render(scene, camera);
 }
-function canvasX(e){
-  const r = gc.getBoundingClientRect();
-  const cxp = (e.touches ? e.touches[0].clientX : e.clientX);
-  return (cxp - r.left) * (GW / r.width);
+
+try{
+  init();
+  window.renderGameOverlay();
+}catch(err){
+  overlay.innerHTML = '<h3>3D unavailable</h3><p>This browser could not start WebGL, so the arcade is closed today.</p>';
 }
-gc.addEventListener("pointermove", e=>{ if(state==="play") targetX = canvasX(e); });
-gc.addEventListener("pointerdown", e=>{
-  if(state==="idle"){ start(); return; }
-  if(state==="play") targetX = canvasX(e);
-});
-addEventListener("keydown", e=>{
-  if(e.key==="ArrowLeft"||e.key==="a") keys.left = true;
-  if(e.key==="ArrowRight"||e.key==="d") keys.right = true;
-  if((e.key===" "||e.key==="Enter") && state==="idle") start();
-});
-addEventListener("keyup", e=>{
-  if(e.key==="ArrowLeft"||e.key==="a") keys.left = false;
-  if(e.key==="ArrowRight"||e.key==="d") keys.right = false;
-});
-window.renderGameOverlay();
-drawTray(); drawHUD();
-})();
 </script>
+
 </body>
 </html>
