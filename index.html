@@ -173,8 +173,6 @@ details.faq p{margin:0;padding:0 16px 16px;line-height:1.6}
   66%{transform:scale(1.04,.96)}
   100%{transform:scale(1,1)}
 }
-#surpriseFace{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .07s}
-#bigRed.smacked #surpriseFace{opacity:1}
 
 footer{margin-top:48px;font-weight:700;letter-spacing:.14em;font-size:.85rem;opacity:.7}
 
@@ -322,18 +320,7 @@ body.overload #flash{animation:flashbang .6s ease-out}
   <h2 class="sec">The <span class="accent">big red</span> button</h2>
   <p class="sec-sub">Do not press. (Press it.)</p>
   <div style="text-align:center;padding:12px 0 8px">
-    <button id="bigRed" type="button" aria-label="Big red button — press for confetti">
-  <svg id="surpriseFace" viewBox="0 0 400 400" aria-hidden="true">
-    <ellipse cx="232" cy="300" rx="26" ry="34" fill="#3d1a10"/>
-    <ellipse cx="232" cy="310" rx="13" ry="18" fill="#8a3b22"/>
-    <g stroke="#fff6e5" stroke-width="7" stroke-linecap="round">
-      <line x1="70" y1="60" x2="45" y2="35"/>
-      <line x1="330" y1="60" x2="355" y2="35"/>
-      <line x1="40" y1="200" x2="12" y2="195"/>
-      <line x1="360" y1="200" x2="388" y2="195"/>
-    </g>
-  </svg>
-</button>
+    <button id="bigRed" type="button" aria-label="Big red button — press for confetti"></button>
   </div>
 
   <div class="checker"></div>
