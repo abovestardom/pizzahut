@@ -163,8 +163,18 @@ details.faq p{margin:0;padding:0 16px 16px;line-height:1.6}
 .preds{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;text-align:left}
 .preds li{background:#fff;border:3px solid var(--ink);border-radius:10px;padding:8px 14px;box-shadow:3px 3px 0 var(--ink);display:flex;justify-content:space-between;font-weight:700}
 #predStatus{min-height:1.2em;font-size:.9rem;font-weight:700}
-#bigRed{width:200px;height:200px;border-radius:50%;background:url('button-face.jpg') center/cover;border:8px solid var(--red);box-shadow:0 10px 0 #6e0818,0 16px 24px rgba(0,0,0,.35);cursor:pointer;transition:transform .06s,box-shadow .06s;padding:0}
+#bigRed{position:relative;overflow:hidden;width:200px;height:200px;border-radius:50%;background:url('button-face.jpg') center/cover;border:8px solid var(--red);box-shadow:0 10px 0 #6e0818,0 16px 24px rgba(0,0,0,.35);cursor:pointer;padding:0}
 #bigRed:active{transform:translateY(8px);box-shadow:0 2px 0 #6e0818,0 6px 12px rgba(0,0,0,.3)}
+#bigRed.smacked{animation:smack .5s}
+@keyframes smack{
+  0%{transform:scale(1,1)}
+  18%{transform:scale(1.14,.76) translateY(8px)}
+  42%{transform:scale(.93,1.08) translateY(-3px)}
+  66%{transform:scale(1.04,.96)}
+  100%{transform:scale(1,1)}
+}
+#surpriseFace{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .07s}
+#bigRed.smacked #surpriseFace{opacity:1}
 
 footer{margin-top:48px;font-weight:700;letter-spacing:.14em;font-size:.85rem;opacity:.7}
 
@@ -312,7 +322,18 @@ body.overload #flash{animation:flashbang .6s ease-out}
   <h2 class="sec">The <span class="accent">big red</span> button</h2>
   <p class="sec-sub">Do not press. (Press it.)</p>
   <div style="text-align:center;padding:12px 0 8px">
-    <button id="bigRed" type="button" aria-label="Big red button — press for confetti"></button>
+    <button id="bigRed" type="button" aria-label="Big red button — press for confetti">
+  <svg id="surpriseFace" viewBox="0 0 400 400" aria-hidden="true">
+    <ellipse cx="232" cy="300" rx="26" ry="34" fill="#3d1a10"/>
+    <ellipse cx="232" cy="310" rx="13" ry="18" fill="#8a3b22"/>
+    <g stroke="#fff6e5" stroke-width="7" stroke-linecap="round">
+      <line x1="70" y1="60" x2="45" y2="35"/>
+      <line x1="330" y1="60" x2="355" y2="35"/>
+      <line x1="40" y1="200" x2="12" y2="195"/>
+      <line x1="360" y1="200" x2="388" y2="195"/>
+    </g>
+  </svg>
+</button>
   </div>
 
   <div class="checker"></div>
@@ -523,7 +544,12 @@ document.getElementById('excuseCopy').addEventListener('click', ()=>{
 });
 
 /* ================= big red button ================= */
-document.getElementById('bigRed').addEventListener('click', ()=>{
+document.getElementById('bigRed').addEventListener('click', function(){
+  const b = this;
+  b.classList.remove('smacked');
+  void b.offsetWidth;
+  b.classList.add('smacked');
+  setTimeout(()=>b.classList.remove('smacked'), 520);
   blastConfetti();
   setTimeout(blastConfetti, 250);
   setTimeout(()=>popConfetti(innerWidth/2, innerHeight/3), 500);
