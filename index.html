@@ -165,6 +165,7 @@ details.faq p{margin:0;padding:0 16px 16px;line-height:1.6}
 #predStatus{min-height:1.2em;font-size:.9rem;font-weight:700}
 #bigRed{position:relative;overflow:hidden;width:200px;height:200px;border-radius:50%;background:url('button-face.jpg') center/cover;border:8px solid var(--red);box-shadow:0 10px 0 #6e0818,0 16px 24px rgba(0,0,0,.35);cursor:pointer;padding:0}
 #bigRed:active{transform:translateY(8px);box-shadow:0 2px 0 #6e0818,0 6px 12px rgba(0,0,0,.3)}
+#musicBtn{position:fixed;right:14px;bottom:14px;z-index:60;width:54px;height:54px;border-radius:50%;font-size:24px;background:var(--yellow);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;line-height:1}
 #bigRed.smacked{animation:smack .5s}
 @keyframes smack{
   0%{transform:scale(1,1)}
@@ -325,14 +326,6 @@ body.overload #flash{animation:flashbang .6s ease-out}
 
   <div class="checker"></div>
 
-  <h2 class="sec">Party <span class="accent">playlist</span></h2>
-  <p class="sec-sub">Pre-game energy. Turn it up.</p>
-  <div class="lore" style="padding:14px">
-    <iframe style="border-radius:12px;border:0" src="https://open.spotify.com/embed/playlist/5Yb36MZRLLdQnNriXfMIVx" width="100%" height="352" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Party Hits playlist on Spotify"></iframe>
-  </div>
-
-  <div class="checker"></div>
-
   <section class="lore" style="text-align:center">
     <h2 class="sec">The <span class="accent">Pizza Hut</span> Buffet story</h2>
     <p style="text-align:center">The lore, the spread, and answers to every buffet question.</p>
@@ -340,6 +333,7 @@ body.overload #flash{animation:flashbang .6s ease-out}
   </section>
 
   <footer>GOOD PIZZA • COLD DRINKS • GREAT COMPANY</footer>
+  <button id="musicBtn" type="button" aria-label="Play music">🔇</button>
 </main>
 
 <script>
@@ -499,8 +493,80 @@ const sfx = {
   click(){ tone(500,.06,'square',.07); },
   pop(){ tone(700,.07,'square',.08,0,1200); }
 };
-document.addEventListener('pointerdown', ()=>ac(), {once:true});
 document.addEventListener('click', (e)=>{ if(e.target.closest('button')) sfx.click(); });
+
+/* ================= 8-bit buffet loop (autostarts on first tap) ================= */
+const TUNE = {
+  bpm: 142,
+  lead: [659,784,1047,784,880,784,659,587, 587,784,988,784,1175,988,784,0,
+         659,880,1047,880,1319,1047,880,784, 880,698,880,1047,988,784,587,0],
+  bass: [131,0,131,0,131,0,196,0, 98,0,98,0,98,0,147,0,
+         110,0,110,0,110,0,165,0, 87,0,87,0,98,0,98,0]
+};
+let musicOn = false, musicStarted = false, seqTimer = null, seqStep = 0, nextNoteTime = 0;
+function musicNote(freq, t, dur, type, vol){
+  const ctx = ac(); if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t+dur+0.03);
+}
+function musicHat(t){
+  const ctx = ac(); if(!ctx) return;
+  const len = Math.floor(ctx.sampleRate*0.03);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*(1-i/len);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=6500;
+  const g = ctx.createGain(); g.gain.value=0.028;
+  src.connect(f); f.connect(g); g.connect(ctx.destination);
+  src.start(t);
+}
+function scheduleStep(step, t){
+  const L = TUNE.lead[step], B = TUNE.bass[step];
+  if(L) musicNote(L, t, 0.19, 'square', 0.045);
+  if(B) musicNote(B, t, 0.20, 'triangle', 0.085);
+  if(step % 2 === 1) musicHat(t);
+}
+function seqTick(){
+  const ctx = ac(); if(!ctx) return;
+  if(nextNoteTime < ctx.currentTime - 0.5) nextNoteTime = ctx.currentTime + 0.05;
+  const stepDur = 60/TUNE.bpm/2;
+  while(nextNoteTime < ctx.currentTime + 0.25){
+    scheduleStep(seqStep, nextNoteTime);
+    nextNoteTime += stepDur;
+    seqStep = (seqStep+1) % 32;
+  }
+}
+function updateMusicBtn(){
+  const b = document.getElementById('musicBtn');
+  if(b){ b.textContent = musicOn ? '🎵' : '🔇'; b.setAttribute('aria-label', musicOn ? 'Mute music' : 'Play music'); }
+}
+function startMusic(){
+  if(musicStarted){ if(!musicOn){ musicOn = true; nextNoteTime = ac().currentTime + 0.1; seqTimer = setInterval(seqTick, 100); updateMusicBtn(); } return; }
+  const ctx = ac(); if(!ctx) return;
+  musicStarted = true; musicOn = true;
+  seqStep = 0; nextNoteTime = ctx.currentTime + 0.15;
+  seqTimer = setInterval(seqTick, 100);
+  updateMusicBtn();
+}
+function stopMusic(){
+  musicOn = false;
+  clearInterval(seqTimer); seqTimer = null;
+  updateMusicBtn();
+}
+document.addEventListener('pointerdown', function musicOnce(){
+  document.removeEventListener('pointerdown', musicOnce);
+  startMusic();
+});
+document.getElementById('musicBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  if(musicOn) stopMusic(); else startMusic();
+});
 
 /* ================= excuse generator ================= */
 const EXCUSES = [
