@@ -151,6 +151,22 @@ details.faq summary::before{content:"+ ";color:var(--red)}
 details.faq[open] summary::before{content:"\2013  "}
 details.faq p{margin:0;padding:0 16px 16px;line-height:1.6}
 
+/* ---------- new party features ---------- */
+.rsvp{font-size:1.25rem;font-weight:800;text-align:center;margin:4px 0 18px}
+.rsvp b{font-family:Bungee,Georgia,serif;color:var(--red);font-size:1.6rem}
+.lb{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;text-align:left;counter-reset:lb}
+.lb li{background:#fff;border:3px solid var(--ink);border-radius:12px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);display:flex;align-items:center;gap:12px;font-weight:700}
+.lb li::before{counter-increment:lb;content:counter(lb);font-family:Bungee,Georgia,serif;color:var(--red);font-size:1.25rem;min-width:1.5em}
+.lb li .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb li .sc{font-family:Bungee,Georgia,serif}
+.lb li.gold .sc{color:#b8860b}
+.preds{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;text-align:left}
+.preds li{background:#fff;border:3px solid var(--ink);border-radius:10px;padding:8px 14px;box-shadow:3px 3px 0 var(--ink);display:flex;justify-content:space-between;font-weight:700}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.pgrid img{width:100%;aspect-ratio:1;object-fit:cover;border:3px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 var(--ink);background:#fff}
+@media (max-width:460px){.pgrid{grid-template-columns:repeat(2,1fr)}}
+#predStatus,#photoStatus{min-height:1.2em;font-size:.9rem;font-weight:700}
+
 footer{margin-top:48px;font-weight:700;letter-spacing:.14em;font-size:.85rem;opacity:.7}
 
 /* ---------- pizza overload ---------- */
@@ -235,6 +251,7 @@ body.overload #flash{animation:flashbang .6s ease-out}
 
   <h2 class="sec"><span class="accent">★</span> WALL OF FAME <span class="accent">★</span></h2>
   <p class="sec-sub">Sign the guest book — it unlocks the arcade game below.</p>
+  <p class="rsvp"><b id="rsvpCount">…</b> slice lovers are coming</p>
   <form id="form" autocomplete="off">
     <label for="name">Your name</label>
     <input id="name" maxlength="30" required>
@@ -258,6 +275,51 @@ body.overload #flash{animation:flashbang .6s ease-out}
     <div id="gameOverlay"></div>
   </div>
   <p id="gameHint">Mouse, touch, or arrow keys. Streaks build your combo. No mods — the pizza police are watching. 🚨</p>
+
+  <h2 class="sec">Slice <span class="accent">legends</span></h2>
+  <p class="sec-sub">Top buffet athletes, updated live.</p>
+  <ol id="lbList" class="lb"></ol>
+  <p id="lbEmpty" class="sec-sub">No legends yet. Be the first.</p>
+
+  <div class="checker"></div>
+
+  <h2 class="sec">Need an <span class="accent">excuse?</span></h2>
+  <p class="sec-sub">One tap. Zero guilt. See you Friday.</p>
+  <div class="lore" style="text-align:center">
+    <p id="excuseOut" style="font-size:1.12rem;font-weight:700;min-height:3.2em;margin-bottom:8px">Tap below for your official excuse.</p>
+    <p style="margin-bottom:0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button id="excuseBtn" type="button">Generate excuse</button>
+      <button id="excuseCopy" type="button">Copy</button>
+    </p>
+  </div>
+
+  <div class="checker"></div>
+
+  <h2 class="sec">Slice <span class="accent">predictor</span></h2>
+  <p class="sec-sub">How many slices will the crew demolish Friday? Closest guess wins eternal glory.</p>
+  <form id="predForm" autocomplete="off">
+    <label for="predName">Your name</label>
+    <input id="predName" maxlength="24" placeholder="Slice Nostradamus">
+    <label for="predNum">Your prediction (slices)</label>
+    <input id="predNum" type="number" min="1" max="5000" required placeholder="100">
+    <button type="submit">Lock in my guess</button>
+    <p id="predStatus" role="status"></p>
+  </form>
+  <p class="sec-sub" style="margin-top:16px">Crew average guess: <b id="predAvg">–</b></p>
+  <ul id="predList" class="preds"></ul>
+
+  <div class="checker"></div>
+
+  <h2 class="sec">Buffet <span class="accent">photo wall</span></h2>
+  <p class="sec-sub">Post your buffet-day pics. Glory lasts forever.</p>
+  <div class="lore" style="text-align:center">
+    <p style="margin-bottom:10px"><input type="file" id="photoInput" accept="image/*" multiple style="border:0;box-shadow:none;padding:0"></p>
+    <p style="margin-bottom:0"><button id="photoBtn" type="button">Upload photos</button></p>
+    <p id="photoStatus" role="status" style="margin:10px 0 0;font-size:.9rem;font-weight:700"></p>
+  </div>
+  <div id="photoGrid" class="pgrid"></div>
+
+  <div class="checker"></div>
 
   <section class="lore" style="text-align:center">
     <h2 class="sec">The <span class="accent">Pizza Hut</span> Buffet story</h2>
@@ -386,6 +448,76 @@ function tick(){
 }
 tick();
 
+/* ================= 8-bit sound effects (Web Audio, no assets) ================= */
+let actx = null;
+function ac(){
+  if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, dur, type, vol, when, slideTo){
+  const ctx = ac(); if(!ctx) return;
+  const t = ctx.currentTime + (when||0);
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type||'square'; o.frequency.setValueAtTime(freq, t);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1,slideTo), t+dur);
+  g.gain.setValueAtTime(vol||.1, t);
+  g.gain.exponentialRampToValueAtTime(.001, t+dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t+dur+.03);
+}
+function noiseBurst(dur, vol){
+  const ctx = ac(); if(!ctx) return;
+  const len = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (1-i/len);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1100;
+  const g = ctx.createGain(); g.gain.value = vol||.25;
+  src.connect(f); f.connect(g); g.connect(ctx.destination);
+  src.start();
+}
+const sfx = {
+  catch(){ tone(660,.09,'square',.09); tone(990,.12,'square',.09,.07); },
+  gold(){ tone(880,.1,'square',.11); tone(1174,.1,'square',.11,.09); tone(1568,.18,'square',.11,.18); },
+  burnt(){ tone(220,.25,'sawtooth',.13,0,110); },
+  over(){ tone(523,.12,'square',.11); tone(392,.12,'square',.11,.12); tone(262,.22,'square',.11,.24); },
+  overload(){ noiseBurst(.7,.3); tone(150,.6,'sawtooth',.16,0,40); tone(1200,.4,'square',.07,.1,200); },
+  click(){ tone(500,.06,'square',.07); },
+  pop(){ tone(700,.07,'square',.08,0,1200); }
+};
+document.addEventListener('pointerdown', ()=>ac(), {once:true});
+document.addEventListener('click', (e)=>{ if(e.target.closest('button')) sfx.click(); });
+
+/* ================= excuse generator ================= */
+const EXCUSES = [
+  "I have a dentist appointment. With destiny. At Pizza Hut.",
+  "My car broke down… in the Pizza Hut parking lot. Tragic.",
+  "I'm attending a very important business lunch. The business is pizza.",
+  "Doctor's orders: unlimited breadsticks, stat.",
+  "I need to investigate whether the buffet is still as good as I remember. For science.",
+  "My therapist said I should do more things that bring me joy. See you at 11.",
+  "I have a job interview. The job is Professional Buffet Eater.",
+  "Family emergency. The family is the Pizza Hut buffet and the emergency is hunger.",
+  "I'm observing a moment of silence for all the slices I missed in the '90s.",
+  "My astrologist said Jupiter aligns with pepperoni this Friday.",
+  "I left my dignity at the salad bar in 1997. Going back to get it.",
+  "Mandatory team-building exercise. The team is me. The building is Pizza Hut."
+];
+function newExcuse(){
+  const el = document.getElementById('excuseOut');
+  let pick = EXCUSES[Math.floor(Math.random()*EXCUSES.length)];
+  if(el.textContent === pick) pick = EXCUSES[(EXCUSES.indexOf(pick)+1)%EXCUSES.length];
+  el.textContent = '\u201C' + pick + '\u201D';
+  sfx.pop();
+}
+document.getElementById('excuseBtn').addEventListener('click', newExcuse);
+document.getElementById('excuseCopy').addEventListener('click', ()=>{
+  const t = document.getElementById('excuseOut').textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
+});
+
 /* ================= guest book (Firebase Firestore) ================= */
 </script>
 
@@ -393,6 +525,7 @@ tick();
 const firebaseConfig = {
   apiKey: "AIzaSyDPQrb1bTHNRqGT5Xxi4nNkWYQ6OdggyzQ",
   authDomain: "pizzahut-5ccce.firebaseapp.com",
+  storageBucket: "pizzahut-5ccce.appspot.com",
   projectId: "pizzahut-5ccce",
   appId: "1:353619474521:web:9142c08b8282252a6f9948"
 };
@@ -453,6 +586,144 @@ if(firebaseConfig.apiKey.startsWith("PASTE")){
     }catch(err){ status.textContent = "Couldn't save that. Try again in a moment."; }
     setTimeout(()=>{ send.disabled = false; }, 8000);
   });
+
+  // ---- RSVP counter ----
+  const rsvpEl = document.getElementById('rsvpCount');
+  async function refreshRsvp(){
+    try{
+      const c = await fs.getCountFromServer(col);
+      const n = c.data().count;
+      const start = parseInt(rsvpEl.textContent, 10) || 0;
+      const t0 = performance.now();
+      (function step(t){
+        const p = Math.min(1, (t-t0)/900);
+        rsvpEl.textContent = Math.round(start + (n-start)*p);
+        if(p<1) requestAnimationFrame(step);
+      })(t0);
+    }catch(e){ rsvpEl.textContent = 'plenty of'; }
+  }
+  refreshRsvp();
+
+  // ---- Slice leaderboard ----
+  const lbList = document.getElementById('lbList');
+  const lbEmpty = document.getElementById('lbEmpty');
+  const scoresCol = fs.collection(db, 'scores');
+  fs.onSnapshot(fs.query(scoresCol, fs.orderBy('score','desc'), fs.limit(10)),
+    (snap)=>{
+      lbList.replaceChildren(); let n=0;
+      snap.forEach((doc)=>{ n++;
+        const d = doc.data();
+        const li = document.createElement('li');
+        if(n===1) li.classList.add('gold');
+        const nm = document.createElement('span'); nm.className='nm'; nm.textContent = d.name || 'Anonymous';
+        const sc = document.createElement('span'); sc.className='sc'; sc.textContent = d.score;
+        li.append(nm, sc); lbList.append(li);
+      });
+      lbEmpty.style.display = n ? 'none' : 'block';
+    },
+    ()=>{ lbEmpty.textContent = "Leaderboard's taking a nap."; }
+  );
+  window.submitScore = function(score){
+    const box = document.getElementById('lbSubmit');
+    if(!box || box.dataset.done) return;
+    box.dataset.done = '1';
+    const p = document.createElement('p'); p.innerHTML = '🏆 <b>New legend!</b> Put your name on the board:';
+    const inp = document.createElement('input'); inp.maxLength = 24; inp.placeholder = 'Your name'; inp.style.margin = '8px 0';
+    const btn = document.createElement('button'); btn.type='button'; btn.textContent='Claim glory';
+    const msg = document.createElement('p'); msg.style.cssText='font-size:.9rem;font-weight:700;min-height:1.2em;margin:8px 0 0';
+    btn.addEventListener('click', async ()=>{
+      const name = inp.value.trim().slice(0,24) || 'Anonymous';
+      btn.disabled = true; msg.textContent = 'Posting...';
+      try{
+        await fs.addDoc(scoresCol, {name, score, createdAt: fs.serverTimestamp()});
+        msg.textContent = "⭐ You're on the board!";
+        sfx.pop();
+      }catch(e){ msg.textContent = 'Could not save. Try again later.'; btn.disabled = false; }
+    });
+    box.append(p, inp, btn, msg);
+  };
+
+  // ---- Slice predictor ----
+  const predForm = document.getElementById('predForm');
+  const predList = document.getElementById('predList');
+  const predAvg = document.getElementById('predAvg');
+  const predStatus = document.getElementById('predStatus');
+  const predsCol = fs.collection(db, 'predictions');
+  fs.onSnapshot(fs.query(predsCol, fs.orderBy('createdAt','desc'), fs.limit(50)),
+    (snap)=>{
+      predList.replaceChildren();
+      let sum=0, n=0;
+      snap.forEach((doc)=>{
+        const d = doc.data();
+        const v = parseInt(d.guess,10);
+        if(!(v>0)) return;
+        n++; sum+=v;
+        const li = document.createElement('li');
+        const nm = document.createElement('span'); nm.textContent = d.name || 'Anonymous';
+        const g = document.createElement('b'); g.textContent = v.toLocaleString() + ' slices';
+        li.append(nm, g); predList.append(li);
+      });
+      predAvg.textContent = n ? Math.round(sum/n).toLocaleString() + ' slices' : '–';
+    },
+    ()=>{}
+  );
+  predForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('predName').value.trim().slice(0,24);
+    const guess = parseInt(document.getElementById('predNum').value,10);
+    if(!(guess>=1 && guess<=5000)){ predStatus.textContent = 'Pick a number between 1 and 5000.'; return; }
+    predStatus.textContent = 'Locking in...';
+    try{
+      await fs.addDoc(predsCol, {name: name||'Anonymous', guess, createdAt: fs.serverTimestamp()});
+      predStatus.textContent = 'Locked in! 🍕';
+      predForm.reset(); sfx.pop();
+    }catch(err){ predStatus.textContent = 'Could not save. Try again in a moment.'; }
+  });
+
+  // ---- Photo wall (Firebase Storage) ----
+  const photoGrid = document.getElementById('photoGrid');
+  const photoInput = document.getElementById('photoInput');
+  const photoBtn = document.getElementById('photoBtn');
+  const photoStatus = document.getElementById('photoStatus');
+  try{
+    const st = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+    const storage = st.getStorage(app);
+    const photosRef = st.ref(storage, 'photos');
+    async function loadPhotos(){
+      try{
+        const res = await st.listAll(photosRef);
+        const items = res.items.sort((a,b)=> b.name.localeCompare(a.name)).slice(0,30);
+        photoGrid.replaceChildren();
+        for(const item of items){
+          const url = await st.getDownloadURL(item);
+          const img = document.createElement('img');
+          img.src = url; img.alt = 'Buffet photo'; img.loading = 'lazy';
+          photoGrid.appendChild(img);
+        }
+      }catch(e){ /* gallery stays empty until storage allows */ }
+    }
+    loadPhotos();
+    photoBtn.addEventListener('click', async ()=>{
+      const files = Array.from(photoInput.files||[]).slice(0,5);
+      if(!files.length){ photoStatus.textContent = 'Pick some photos first.'; return; }
+      photoBtn.disabled = true;
+      let ok=0;
+      for(const f of files){
+        if(!f.type.startsWith('image/')) continue;
+        photoStatus.textContent = 'Uploading ' + (ok+1) + '/' + files.length + '...';
+        try{
+          const r = st.ref(storage, 'photos/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '-' + f.name.replace(/[^a-zA-Z0-9.]/g,'_'));
+          await st.uploadBytes(r, f);
+          ok++;
+        }catch(e){ break; }
+      }
+      photoStatus.textContent = ok ? ('Posted ' + ok + ' photo' + (ok>1?'s':'') + '! 🍕') : 'Upload failed — try again later.';
+      photoBtn.disabled = false;
+      if(ok){ photoInput.value=''; loadPhotos(); sfx.pop(); }
+    });
+  }catch(e){
+    photoStatus.textContent = 'Photo wall is offline right now.';
+  }
 }
 </script>
 
@@ -715,6 +986,7 @@ function pizzaOverload(){
   updateHUD();
   burst(new THREE.Vector3(0, 3.5, 0), [0xffd23f,0xd9a05b,0xc0392b,0xffe27a,0xc8102e,0xfff6e5], 90);
   shakeT = 1.5;
+  sfx.overload();
   document.body.classList.add('overload');
   blastConfetti();
   setTimeout(blastConfetti, 400);
@@ -746,9 +1018,11 @@ function start(){
 function gameOver(){
   state = 'over';
   hud.hidden = true;
+  sfx.over();
   overlay.style.display = 'flex';
-  overlay.innerHTML = '<h3>Game over!</h3><p>You scored <b>'+score+'</b></p><p class="rank">'+(tainted ? '🚨 Flagged by the pizza police' : rankFor(score))+'</p><button id="againBtn" type="button">Play again</button>';
+  overlay.innerHTML = '<h3>Game over!</h3><p>You scored <b>'+score+'</b></p><p class="rank">'+(tainted ? '🚨 Flagged by the pizza police' : rankFor(score))+'</p><button id="againBtn" type="button">Play again</button><div id="lbSubmit"></div>';
   document.getElementById('againBtn').addEventListener('click', start);
+  if(!tainted && score > 0 && window.submitScore) window.submitScore(score);
 }
 
 window.renderGameOverlay = function(){
@@ -798,6 +1072,7 @@ function loop(t){
         if(s.kind === 'burnt'){
           lives--; combo = 0; updateHUD();
           burst(p, [0x55504a, 0x2e2a26]);
+          sfx.burnt();
           if(lives <= 0){ removeSlice(i); gameOver(); return; }
         }else{
           const pts = s.kind === 'gold' ? 50 : 10;
@@ -806,6 +1081,7 @@ function loop(t){
           score += gain;
           auditScore += gain;
           updateHUD();
+          if(s.kind === 'gold') sfx.gold(); else sfx.catch();
           burst(p, s.kind === 'gold' ? [0xffe27a,0xfff2a8,0xffd23f] : [0xffd23f,0xd9a05b,0xc0392b]);
           if(score >= OVERLOAD_AT) pizzaOverload();
         }
