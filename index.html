@@ -43,11 +43,6 @@ body::after{
 .cursor{display:inline-block;width:.55em;height:1em;background:#ffd93b;vertical-align:-.12em;
   box-shadow:0 0 10px rgba(255,217,59,.9);animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-#hint{
-  position:fixed;bottom:34px;left:0;right:0;text-align:center;z-index:2;
-  font-size:clamp(1rem,4vw,1.4rem);letter-spacing:.18em;color:#ff4d8d;
-  text-shadow:0 0 6px rgba(255,77,141,.55);animation:blink 1.6s steps(1) infinite;
-}
 #enter{
   display:none;margin-top:34px;z-index:2;
   font-size:clamp(1.2rem,5vw,1.8rem);letter-spacing:.14em;color:#ffd93b;
@@ -56,10 +51,10 @@ body::after{
   animation:blink 1.4s steps(1) infinite;
 }
 #enter.show{display:inline-block}
-body.leaving #term,body.leaving #hint{transition:opacity .35s;opacity:0}
+body.leaving #term{transition:opacity .35s;opacity:0}
 @media (prefers-reduced-motion: reduce){
   #term{animation:none}
-  .cursor,#hint,#enter.show{animation:none}
+  .cursor,#enter.show{animation:none}
 }
 </style>
 </head>
@@ -67,11 +62,9 @@ body.leaving #term,body.leaving #hint{transition:opacity .35s;opacity:0}
 <div class="vignette"></div>
 <div id="term" aria-live="polite"></div>
 <a id="enter" href="party.html">ENTER THE PARTY →</a>
-<div id="hint">[ TAP ×3 TO HOLD THE SIGNAL ]</div>
 <script>
 "use strict";
 const term = document.getElementById('term');
-const hint = document.getElementById('hint');
 const enter = document.getElementById('enter');
 const LINES = ['THE BUFFET', 'WAS ONLY THE', 'BEGINNING'];
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&@!?<>/\\|';
@@ -116,7 +109,6 @@ addEventListener('pointerup', ()=>{
 function holdSignal(){
   held = true;
   clearTimeout(redirectTimer);
-  hint.style.display = 'none';
   scrambleResolve();
 }
 function scrambleResolve(){
